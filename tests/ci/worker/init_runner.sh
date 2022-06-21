@@ -66,10 +66,6 @@ docker kill $(docker ps -q) ||:
 # shellcheck disable=SC2046
 docker rm -f $(docker ps -a -q) ||:
 EOF
-ACTIONS_RUNNER_HOOK_JOB_STARTED=/tmp/actions-hooks/pre-run.sh
-export ACTIONS_RUNNER_HOOK_JOB_STARTED
-ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/tmp/actions-hooks/post-run.sh
-export ACTIONS_RUNNER_HOOK_JOB_COMPLETED
 
 while true; do
     runner_pid=$(pgrep run.sh)
@@ -87,7 +83,10 @@ while true; do
         sudo -u ubuntu ./config.sh --url $RUNNER_URL --token "$RUNNER_TOKEN" --name "$INSTANCE_ID" --runnergroup Default --labels "$LABELS" --work _work
 
         echo "Run"
-        sudo -u ubuntu ./run.sh &
+        sudo -u ubuntu \
+          ACTIONS_RUNNER_HOOK_JOB_STARTED=/tmp/actions-hooks/pre-run.sh \
+          ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/tmp/actions-hooks/post-run.sh \
+          ./run.sh &
         sleep 15
     else
         echo "Runner is working with pid $runner_pid, nothing to do"
