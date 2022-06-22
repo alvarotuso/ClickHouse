@@ -37,9 +37,7 @@ function(add_contrib cmake_folder)
 
         file(GLOB contrib_files "${base_folder}/*")
         if (NOT contrib_files)
-            message(STATUS "submodule ${base_folder} is missing or empty. to fix try run:")
-            message(STATUS "    git submodule update --init")
-            return()
+            message(FATAL_ERROR "Submodule ${base_folder} is missing or empty. To fix run 'git submodule update --init'")
         endif()
     endforeach()
 
