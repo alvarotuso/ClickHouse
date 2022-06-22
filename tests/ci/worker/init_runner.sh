@@ -31,19 +31,13 @@ systemctl restart amazon-cloudwatch-agent.service
 mkdir -p /tmp/actions-hooks
 cat > /tmp/actions-hooks/pre-run.sh << 'EOF'
 #!/bin/bash
-set -uo pipefail
+set -xuo pipefail
 
-sudo systemctl restart docker
-
-for i in {1..10}
-do
-  docker info && break || sleep 2
-done
 EOF
 
 cat > /tmp/actions-hooks/post-run.sh << 'EOF'
 #!/bin/bash
-set -uo pipefail
+set -xuo pipefail
 
 # Free KiB, free percents
 ROOT_STAT=($(df / | awk '/\// {print $4 " " int($3/$2 * 100)}'))
@@ -54,17 +48,24 @@ if [[ ${ROOT_STAT[0]} -lt 3000000 ]] || [[ ${ROOT_STAT[1]} -lt 5 ]]; then
   exit 0
 fi
 
-sudo systemctl restart docker
-
-for i in {1..10}
-do
-  docker info && break || sleep 2
-done
-
 # shellcheck disable=SC2046
 docker kill $(docker ps -q) ||:
 # shellcheck disable=SC2046
 docker rm -f $(docker ps -a -q) ||:
+
+# If we have hanged containers after the previous commands, than we have a hanged one
+# and should restart the daemon
+if [ "$(docker ps -a -q)" ]; then
+  for i in {1..5};
+  do
+    sudo systemctl restart docker && break || sleep 5
+  done
+
+  for i in {1..10}
+  do
+    docker info && break || sleep 2
+  done
+fi
 EOF
 
 while true; do
